@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
 
-SCRIPTNAME="$(basename $0)"
-SCRIPTDIR="$(dirname "${BASH_SOURCE[0]}")"
+APPNAME="$(basename $0)"
+USER="${SUDO_USER:-${USER}}"
+HOME="${USER_HOME:-${HOME}}"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# @Author      : Jason
-# @Contact     : casjaysdev@casjay.net
-# @File        : install.sh
-# @Created     : Mon, Dec 31, 2019, 00:00 EST
-# @License     : WTFPL
-# @Copyright   : Copyright (c) CasjaysDev
-# @Description : installer script for lightdm
+# @Author          : Jason
+# @Contact         : casjaysdev@casjay.net
+# @File            : install.sh
+# @Created         : Wed, Aug 09, 2020, 02:00 EST
+# @License         : WTFPL
+# @Copyright       : Copyright (c) CasjaysDev
+# @Description     : installer script for lightdm
 #
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Set functions
 
-SCRIPTSFUNCTURL="${SCRIPTSFUNCTURL:-https://github.com/casjay-dotfiles/scripts/raw/master/functions}"
-SCRIPTSFUNCTDIR="${SCRIPTSFUNCTDIR:-/usr/local/share/CasjaysDev/scripts}"
-SCRIPTSFUNCTFILE="${SCRIPTSFUNCTFILE:-app-installer.bash}"
+SCRIPTSFUNCTURL="${SCRIPTSAPPFUNCTURL:-https://github.com/dfmgr/installer/raw/master/functions}"
+SCRIPTSFUNCTDIR="${SCRIPTSAPPFUNCTDIR:-/usr/local/share/CasjaysDev/scripts}"
+SCRIPTSFUNCTFILE="${SCRIPTSAPPFUNCTFILE:-app-installer.bash}"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -34,10 +35,7 @@ fi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# Requires root - no point in continuing
-
-sudoreq # sudo required
-#sudorun  # sudo optional
+grub() { cmd_exists grub2 && APPINSTNAME=grub2 || cmd_exists grub && APPINSTNAME=grub ;}
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -52,91 +50,84 @@ scripts_check
 APPNAME="lightdm"
 PLUGNAME=""
 
-# USER
-if [[ $EUID -ne 0 ]]; then
-  BIN="$HOME/.local/bin"
-  CONF="$HOME/.config"
-  SHARE="$HOME/.local/share"
-  LOGDIR="$HOME/.local/logs"
-  BACKUPDIR="${BACKUPS:-$HOME/.local/backups/dotfiles}"
-  COMPDIR="${BASH_COMPLETION_USER_DIR:-$HOME/.local/share/bash_completion.d}"
-
-# SYSTEM
-else
-  BIN="/usr/local/bin"
-  CONF="/usr/local/etc"
-  SHARE="/usr/local/share/CasjaysDev"
-  LOGDIR="/usr/local/log"
-  BACKUPDIR="/usr/local/share/backups/dotfiles"
-  COMPDIR="/etc/bash_completion.d"
-
-fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # git repos
 
-REPO="${THEMEMGRREPO:-https://github.com/thememgr}"
-REPORAW="$REPO/$APPNAME/raw"
 PLUGINREPO=""
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# if installing system wide - change to system_installdirs
+
+systemmgr_installer
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Version
 
-APPVERSION="$(curl -LSs $REPORAW/master/version.txt)"
+APPVERSION="$(curl -LSs ${SYSTEMMGRREPO:-https://github.com/systemmgr}/$APPNAME/raw/master/version.txt)"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Set options
 
-APPDIR="$CONF/$APPNAME"
-PLUGDIR="$CONF/$APPNAME/$PLUGNAME"
+APPDIR="$HOMEDIR/$APPNAME"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-if [ "$1" = "--cron" ]; then
-  crontab_add "$@"
-  exit
-fi
-if [ "$1" = "--help" ]; then
-  xdg-open "$REPO/$APPNAME"
-  exit
-fi
-if [ "$1" = "--update" ]; then
-  versioncheck
-  exit
-fi
-if [ "$1" = "--version" ] && [ -f "$APPDIR/version.txt" ]; then
-  cat "$APPDIR/version.txt" | grep -v "#" | tail -n 1
-  exit
-fi
+# Script options IE: --help
+
+show_optvars "$@"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# prerequisites
+# Requires root - no point in continuing
 
-APP=""
-PKG=""
-PIP=""
-MISSING=""
-PIPMISSING=""
+sudoreq # sudo required
+#sudorun  # sudo optional
 
-# - - - - - - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# install required packages
-cmd_exists "$APPNAME" || pkmgr required lightdm lightdm-gtk-greeter-settings
+APP="$APPNAME lightdm-gtk-greeter-settings "
+APP+=""
+PERL=""
+PYTH=""
+PIPS=""
+CPAN=""
+GEMS=""
+
+# install packages - useful for package that have the same name on all oses
+install_packages $APP
+
+# install required packages using file
+install_required $APP
+
+# check for perl modules and install using system package manager
+install_perl $PERL
+
+# check for python modules and install using system package manager
+install_python $PYTH
+
+# check for pip binaries and install using python package manager
+install_pip $PIPS
+
+# check for cpan binaries and install using perl package manager
+install_cpan $CPAN
+
+# check for ruby binaries and install using ruby package manager
+install_gem $GEMS
+
+# Other dependencies
+dotfilesreq
+dotfilesreqadmin
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Ensure directories exist
 
-mkd "$SHARE"
-mkd "$LOGDIR"
-mkd "$COMPDIR"
-mkd "$BACKUPDIR"
-mkd "$CONF/CasjaysDev/thememgr"
-chmod 777 "$SHARE"
+ensure_dirs
+ensure_perms
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -174,6 +165,7 @@ fi
 # run post install scripts
 
 run_postinst() {
+    run_postinst_systemgr
   if [ ! -f "$APPDIR/.inst" ] && cmd_exists lightdm; then
     cmd_exists iconmgr && iconmgr install Obsidian
     cmd_exists thememgr && thememgr install Arc-Pink-Dark
@@ -202,14 +194,11 @@ execute \
 
 # create version file
 
-if [ ! -f "$CONF/CasjaysDev/thememgr/$APPNAME" ] && [ -f "$APPDIR/version.txt" ]; then
-  ln_sf "$APPDIR/install.sh" "$CONF/CasjaysDev/thememgr/$APPNAME"
-fi
+install_systemmgr_version
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # exit
-if [ ! -z "$EXIT" ]; then exit "$EXIT"; fi
+run_exit
 
 # end
-# vim: set expandtab ts=2 noai
