@@ -13,7 +13,22 @@ sudo bash -c "$(curl -LSs https://github.com/systemmgr/lightdm/raw/master/instal
 ```
 Manual install:
 ```
-sudo git clone https://github.com/systemmgr/lightdm "/usr/local/etc/lightdm"
+sudo bash -c " 
+git clone https://github.com/systemmgr/lightdm "/usr/local/etc/lightdm"
+if [ -d /usr/share/lightdm-gtk-greeter-settings ]; then
+  LIGHTDMG=/usr/share/lightdm-gtk-greeter-settings
+elif [ -d /usr/share/lightdm-gtk-greeter ]; then
+  LIGHTDMG=/usr/share/lightdm-gtk-greeter
+else
+  LIGHTDMG=/usr/share/lightdm/lightdm-gtk-greeter.conf.d
+fi
+
+if [ -d /etc/lightdm ]; then
+  cp -Rf $APPDIR/etc/* /etc/lightdm/
+  cp -Rf $APPDIR/share/lightdm/* /usr/share/lightdm/
+  cp -R $APPDIR/share/lightdm-gtk-greeter-settings/* $LIGHTDMG/lightdm-gtk-greeter.conf.d
+fi
+"
 ```  
   
 <p align=center>
