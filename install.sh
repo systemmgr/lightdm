@@ -103,7 +103,7 @@ failexitcode
 # run post install scripts
 
 run_postinst() {
-  systemmgr_run_post
+  systemmgr_run_postinst
   if [ ! -f "$APPDIR/.inst" ] && cmd_exists lightdm; then
     cmd_exists iconmgr && iconmgr install Obsidian
     cmd_exists thememgr && thememgr install Arc-Pink-Dark
