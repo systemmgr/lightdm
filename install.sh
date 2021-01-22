@@ -48,9 +48,10 @@ scripts_check
 # Defaults
 APPNAME="${APPNAME:-lightdm}"
 APPDIR="/usr/local/etc/$APPNAME"
+INSTDIR="${INSTDIR}"
 REPO="${SYSTEMMGRREPO:-https://github.com/systemmgr}/${APPNAME}"
 REPORAW="${REPORAW:-$REPO/raw}"
-APPVERSION="$(curl -LSs $REPORAW/master/version.txt)"
+APPVERSION="$(__appversion $REPORAW/master/version.txt)"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -63,6 +64,13 @@ systemmgr_install
 # Script options IE: --help
 
 show_optvars "$@"
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Requires root - no point in continuing
+
+sudoreq # sudo required
+#sudorun  # sudo optional
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -84,15 +92,15 @@ ensure_perms
 
 # Main progam
 
-if [ -d "$APPDIR/.git" ]; then
+if [ -d "$INSTDIR/.git" ]; then
   execute \
-  "git_update $APPDIR" \
-  "Updating $APPNAME configurations"
+    "git_update $INSTDIR" \
+    "Updating $APPNAME configurations"
 else
   execute \
-  "backupapp && \
-        git_clone -q $REPO/$APPNAME $APPDIR" \
-  "Installing $APPNAME configurations"
+    "backupapp && \
+        git_clone -q $REPO/$APPNAME $INSTDIR" \
+    "Installing $APPNAME configurations"
 fi
 
 # exit on fail
@@ -104,29 +112,31 @@ failexitcode
 
 run_postinst() {
   systemmgr_run_postinst
-  if [ ! -f "$APPDIR/.inst" ] && cmd_exists lightdm; then
+  if [ ! -f "$INSTDIR/.inst" ] && cmd_exists lightdm; then
     cmd_exists iconmgr && iconmgr install Obsidian
     cmd_exists thememgr && thememgr install Arc-Pink-Dark
-    if [ -d /usr/share/lightdm-gtk-greeter-settings ]; then
-      LIGHTDMG=/usr/share/lightdm-gtk-greeter-settings
-    elif [ -d /usr/share/lightdm-gtk-greeter ]; then
-      LIGHTDMG=/usr/share/lightdm-gtk-greeter
+    if [ -d "/usr/share/lightdm-gtk-greeter-settings" ]; then
+      LIGHTDMG="/usr/share/lightdm-gtk-greeter-settings"
+    elif [ -d "/usr/share/lightdm-gtk-greeter" ]; then
+      LIGHTDMG="/usr/share/lightdm-gtk-greeter"
     else
-      LIGHTDMG=/usr/share/lightdm/lightdm-gtk-greeter.conf.d
+      LIGHTDMG="/usr/share/lightdm/lightdm-gtk-greeter.conf.d"
     fi
 
-    if [ -d /etc/lightdm ]; then
-      cp_rf $APPDIR/etc/* /etc/lightdm/
-      cp_rf $APPDIR/share/lightdm/* /usr/share/lightdm/
-      cp_rf $APPDIR/share/lightdm-gtk-greeter-settings/* $LIGHTDMG/
+    if [ -d "/etc/lightdm" ]; then
+      cp_rf "$APPDIR/." /etc/lightdm/
+      [ -d "/usr/share/lightdm" ] &&
+        cp_rf "$INSTDIR/share/lightdm/." /usr/share/lightdm/
+      [ -d "$LIGHTDMG" ] &&
+        cp_rf "$INSTDIR/share/lightdm-gtk-greeter-settings/." "$LIGHTDMG"/
     fi
   fi
-  touch "$APPDIR/.inst"
+  touch "$INSTDIR/.inst"
 }
 
 execute \
-"run_postinst" \
-"Running post install scripts"
+  "run_postinst" \
+  "Running post install scripts"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
