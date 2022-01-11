@@ -133,6 +133,7 @@ fi
 # run post install scripts
 run_postinst() {
   systemmgr_run_post
+  local LIGHTDMG=""
   if [ ! -f "$INSTDIR/.inst" ] && cmd_exists lightdm; then
     cmd_exists iconmgr && iconmgr install Obsidian
     cmd_exists thememgr && thememgr install Arc-Pink-Dark
@@ -146,10 +147,10 @@ run_postinst() {
       LIGHTDMG="/usr/share/lightdm/lightdm.conf.d"
     fi
     if [ -d "/etc/lightdm" ] && [ -n "$LIGHTDMG" ]; then
-      backupapp "$LIGHTDMG" lightdm
-      cp_rf "$APPDIR/." /etc/lightdm/
+      backupapp "$LIGHTDMG" "lightdm"
+      cp_rf "$APPDIR/." "/etc/lightdm/"
       [ -d "/usr/share/lightdm" ] &&
-        cp_rf "$INSTDIR/share/lightdm/." /usr/share/lightdm/
+        cp_rf "$INSTDIR/share/lightdm/." "/usr/share/lightdm/"
       [ -d "$LIGHTDMG" ] &&
         cp_rf "$INSTDIR/share/lightdm-gtk-greeter-settings/." "$LIGHTDMG"/
     fi
